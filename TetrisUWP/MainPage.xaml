@@ -6,9 +6,13 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
+     xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+     
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+     <Grid >
+          <canvas:CanvasControl x:Name="GameCanvas" ClearColor="CornflowerBlue" CreateResources="GameCanvas_CreateResources" Draw="GameCanvas_Draw"  IsTabStop="True" IsHitTestVisible="True" KeyDown="GameCanvas_KeyDown" KeyUp="GameCanvas_KeyUp"/>
+     </Grid>
 
-    <Grid>
 
-    </Grid>
+
 </Page>
