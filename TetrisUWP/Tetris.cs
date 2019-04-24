@@ -12,28 +12,146 @@ using Windows.UI.Xaml;
 
 namespace TetrisUWP
 {
+
+
      abstract class TetrisBlock : Drawable, Collidable
      {
           public Tetrimino[] Tetriminos
           {
-               get; protected set;
+               get; private set;
           }
+          public Tetrimino OriginTetrimino
+          {
+               get; private set;
+          }
+          private float offsetX = 0;
+          private float offsetY = 0;
+          protected byte[,,] TetriminoLayout { get; private set; }
+          protected Tuple<int, int>[][] TetriminoKicks { get; private set; }
+          public TetrisBlock(byte[,,] layout, Tuple<int, int>[][] kicks)
+          {
+               this.TetriminoLayout = layout;
+               this.TetriminoKicks = kicks;
+               OriginTetrimino = new Tetrimino(0, 0, this);
+               Tetriminos = new Tetrimino[] {
+                    OriginTetrimino,
+                    new Tetrimino(0, 0, this),
+                    new Tetrimino(0, 0, this),
+                    new Tetrimino(0, 0, this)
 
-
+               };
+               Rotation = 0;
+               layoutTetriminos();
+          }
 
           public int Rotation { get; set; }
 
+          public void layoutTetriminos(Tuple<int, int> offset = null)
+          {
+               byte v;
+
+               int current = 0;
+               float offX = (offset != null ? offset.Item1 * (float)Tetrimino.Size.Width : 0);
+               float offY = (offset != null ? offset.Item2 * (float)Tetrimino.Size.Height : 0);
+               this.X += offX;
+               this.Y += offY;
+               int firstX = -1, lastX = -1, firstY = -1, lastY = -1;
+               Tuple<int, int>[] coords = new Tuple<int, int>[4];
+               for (int i = 0; i < TetriminoLayout.GetLength(1); i++)
+               {
+                    for (int j = 0; j < TetriminoLayout.GetLength(2); j++)
+                    {
+                         v = TetriminoLayout[Rotation, i, j];
+                         if (v == 0)
+                              continue;
 
 
 
-          public void rotateClockwise()
+                         Tetriminos[current].X = i * ((float)Tetrimino.Size.Width);
+                         Tetriminos[current].Y = j * ((float)Tetrimino.Size.Height);
+                         current += 1;
+                         firstX = (firstX == -1 || i < firstX ? i : firstX);
+                         firstY = (firstY == -1 || j < firstY ? j : firstY);
+                         lastX = (lastX == -1 || i > lastX ? i : lastX);
+                         lastY = (lastY == -1 || j > firstY ? j : lastY);
+
+                    }
+
+               }
+               Width = (float)((lastX - firstX + 1) * Tetrimino.Size.Width);
+               Height = (float)((lastY - firstY + 1) * Tetrimino.Size.Height);
+               offsetX = (float)(firstX * Tetrimino.Size.Width);
+               offsetY = (float)(firstY * Tetrimino.Size.Height);
+
+          }
+
+
+          public Tuple<int, int> canRotate(TetrisGrid grid, bool clockwise)
+          {
+               byte v;
+               bool passing = true;
+               int target;
+               if (clockwise)
+                    target = (Rotation + 1) % 4;
+               else
+               {
+                    if (Rotation - 1 < 0)
+                         target = 3;
+                    else
+                         target = Rotation - 1;
+               }
+               BlockTester tester = new BlockTester(0, 0, (float)Tetrimino.Size.Width, (float)Tetrimino.Size.Height);
+
+               foreach (Tuple<int, int> kick in TetriminoKicks[Util.rotation_id(target, clockwise)])
+               {
+                    passing = true;
+                    for (int i = 0; i < TetriminoLayout.GetLength(1); i++)
+                    {
+                         for (int j = 0; j < TetriminoLayout.GetLength(2); j++)
+                         {
+                              v = TetriminoLayout[target, i, j];
+                              if (v == 0)
+                                   continue;
+
+                              tester.X = i * ((float)Tetrimino.Size.Width) + (kick.Item1 * (float)Tetrimino.Size.Width) + this.x();
+                              tester.Y = j * ((float)Tetrimino.Size.Height) + (kick.Item2 * (float)Tetrimino.Size.Height) + this.y();
+                              if (grid.isCollision(tester))
+                              {
+                                   passing = false;
+                                   break;
+                              }
+
+
+
+
+                         }
+                         if (passing == false)
+                              break;
+                    }
+                    if (passing == true)
+                         return kick;
+
+               }
+               return null;
+
+          }
+
+
+          public void rotateClockwise(Tuple<int, int> kick = null)
           {
                Rotation = (Rotation + 1) % 4;
+               layoutTetriminos(kick);
+
           }
-          public void rotateCounterClockwise()
+          public void rotateCounterClockwise(Tuple<int, int> kick = null)
           {
-               Rotation = (Rotation - 1) % 4;
+               if (Rotation - 1 < 0)
+                    Rotation = 3;
+               else
+                    Rotation = (Rotation - 1) % 4;
+               layoutTetriminos(kick);
           }
+
 
 
           public bool isCollision(float x, float y)
@@ -54,6 +172,15 @@ namespace TetrisUWP
                }
 
           }
+          public void draw(CanvasDrawEventArgs args, float x, float y)
+          {
+               foreach (var t in Tetriminos)
+               {
+                    t.draw(args, x - offsetX, y - offsetY);
+               }
+
+          }
+
 
      }
 
@@ -65,6 +192,7 @@ namespace TetrisUWP
           {
                get; private set;
           }
+
           public static Windows.Foundation.Size Size
           {
                get; private set;
@@ -89,7 +217,13 @@ namespace TetrisUWP
 
           public override void draw(CanvasDrawEventArgs args)
           {
+
                args.DrawingSession.DrawImage(Graphic, x(), y());
+          }
+          public void draw(CanvasDrawEventArgs args, float x, float y)
+          {
+
+               args.DrawingSession.DrawImage(Graphic, x + X, y + Y);
           }
 
 
@@ -100,12 +234,22 @@ namespace TetrisUWP
           public static int HorizontalBlocks = 10;
           public static int VerticalBlocks = 20;
           private bool[,] filled = new bool[HorizontalBlocks, VerticalBlocks];
-          public TetrisGrid()
+
+
+          public TetrisGrid() : this(0, 0)
           {
 
+
+          }
+          public TetrisGrid(float x, float y)
+          {
                this.Height = (float)(VerticalBlocks * Tetrimino.Size.Height);
                this.Width = (float)(HorizontalBlocks * Tetrimino.Size.Width);
+               this.X = x;
+               this.Y = y;
+
           }
+
 
           public override void draw(CanvasDrawEventArgs args)
           {
@@ -113,13 +257,13 @@ namespace TetrisUWP
                for (int i = 0; i < VerticalBlocks + 1; i++)
                {
 
-                    args.DrawingSession.DrawLine(0.0f, (float)(Tetrimino.Size.Height * i), Width, (float)(Tetrimino.Size.Height * i), Colors.Black);
+                    args.DrawingSession.DrawLine(x(), y() + (float)(Tetrimino.Size.Height * i), x() + Width, y() + (float)(Tetrimino.Size.Height * i), Colors.Black);
 
                }
                for (int i = 0; i < HorizontalBlocks + 1; i++)
                {
 
-                    args.DrawingSession.DrawLine((float)(Tetrimino.Size.Height * i), 0.0f, (float)(Tetrimino.Size.Height * i), Height, Colors.Black);
+                    args.DrawingSession.DrawLine(x() + (float)(Tetrimino.Size.Height * i), y(), x() + (float)(Tetrimino.Size.Height * i), y() + Height, Colors.Black);
 
                }
                for (int i = 0; i < filled.GetLength(1); i++)
@@ -128,7 +272,7 @@ namespace TetrisUWP
                     {
                          if (filled[j, i])
                          {
-                              args.DrawingSession.DrawImage(Tetrimino.Graphic, j * (float)Tetrimino.Size.Width, i * (float)Tetrimino.Size.Height);
+                              args.DrawingSession.DrawImage(Tetrimino.Graphic, j * (float)Tetrimino.Size.Width + x(), i * (float)Tetrimino.Size.Height + y());
 
                          }
                     }
@@ -142,8 +286,8 @@ namespace TetrisUWP
                int x, y;
                foreach (var z in block.Tetriminos)
                {
-                    x = (int)(z.x() / Tetrimino.Size.Width);
-                    y = (int)(z.y() / Tetrimino.Size.Height);
+                    x = (int)((z.x() - this.x()) / Tetrimino.Size.Width);
+                    y = (int)((z.y() - this.y()) / Tetrimino.Size.Height);
                     filled[x, y] = true;
                }
           }
@@ -151,40 +295,34 @@ namespace TetrisUWP
           public override bool isCollision(BoundingBox box)
           {
 
-               return (
+               if (
                     box.left() < left() ||
                     box.right() > right() ||
                     box.top() < top() ||
                     box.bottom() > bottom()
-                    );
+                    )
+                    return true;
+
+               int testX = (int)((box.left() - x()) / Tetrimino.Size.Width);
+               int testY = (int)((box.top() - y()) / Tetrimino.Size.Height);
+               return filled[testX, testY];
+
 
 
           }
-          public bool isCollision(TetrisBlock block, float offX = 0, float offY = 0)
+          public bool isCollision(TetrisBlock block, float offX, float offY)
           {
-               float tileLeft, tileTop;
-               foreach (var box in block.Tetriminos)
+               BlockTester tester;
+               foreach (var tetrimino in block.Tetriminos)
                {
-
-                    if (box.left() + offX < left() || box.right() + offX > right() || box.top() + offY < top() || box.bottom() + offY > bottom())
+                    tester = new BlockTester(tetrimino.x() + offX, tetrimino.y() + offY, (float)Tetrimino.Size.Width, (float)Tetrimino.Size.Height);
+                    if (isCollision(tester))
                          return true;
-                    for (int i = 0; i < filled.GetLength(1); i++)
-                    {
-                         for (int j = 0; j < filled.GetLength(0); j++)
-                         {
-                              if (!filled[j, i])
-                                   continue;
-
-                              tileLeft = j * box.Width;
-                              tileTop = i * box.Height;
-                              if (box.left() + offX < tileLeft + box.Width && box.right() + offX > tileLeft && box.top() + offY < tileTop + box.Height && box.bottom() + offY > tileTop)
-                                   return true;
-                         }
-                    }
                }
-               return false;
 
+               return false;
           }
+
 
           public override bool isCollision(float x, float y)
           {
@@ -205,7 +343,7 @@ namespace TetrisUWP
                return false;
           }
      }
-     class TetrisBag
+     class TetrisBag : Drawable
      {
 
           private Func<TetrisBlock>[] tetriminoFactories = {
@@ -220,19 +358,23 @@ namespace TetrisUWP
                ;
           private Queue<TetrisBlock> tetriminos = new Queue<TetrisBlock>();
           private Random random;
-          public TetrisBag() : this(new Random())
-          {
+          public int DisplayCount { get; set; } = 4;
 
-
-          }
-          public TetrisBag(Random random)
+          public TetrisBag(Random random = null, float x = 0, float y = 0, Locatable relativeTo = null)
           {
-               this.random = random;
+               if (random == null)
+                    this.random = new Random();
+               else
+                    this.random = random;
                List<TetrisBlock> bag = new List<TetrisBlock>();
-
+               this.X = x;
+               this.Y = y;
+               this.RelativeTo = relativeTo;
                bag.AddRange(generateBag());
                bag.AddRange(generateBag());
-               bag.ForEach(x => tetriminos.Enqueue(x));
+               bag.ForEach(zx => tetriminos.Enqueue(zx));
+               Width = ((float)Tetrimino.Size.Width * 5);
+               Height = ((float)Tetrimino.Size.Height * 5 * DisplayCount);
 
           }
           private IEnumerable<TetrisBlock> generateBag()
@@ -242,7 +384,7 @@ namespace TetrisUWP
                {
                     result.Add(factory.Invoke());
                }
-               
+
                return result.OrderBy(x => random.Next());
           }
           public TetrisBlock next()
@@ -255,27 +397,58 @@ namespace TetrisUWP
                }
                return block;
           }
+
+          public override void draw(CanvasDrawEventArgs args)
+          {
+               args.DrawingSession.DrawRectangle(x(), y(), Width, Height, Colors.Black);
+               TetrisBlock b;
+               for (int i = 0; i < DisplayCount; i++)
+               {
+                    b = tetriminos.ElementAt(i);
+                    b.draw(args, x() + (Width - b.Width) / 2, y() + ((float)Tetrimino.Size.Height * 5 * (i)) + ((((float)Tetrimino.Size.Height * 5) - b.Height) / 2));
+
+               }
+          }
      }
 
      class TetrisBlockHandler : Drawable
      {
           public enum Action
           {
-               None,MovingLeft, MovingRight, FastDropping, RotatingClockWise, RotatingCounterClockwise
+               FastDropping, RotatingClockWise, RotatingCounterClockwise
           }
+          public enum MoveAction
+          {
+               None, Left, Right
+          }
+
           private TetrisBlock block;
           private TetrisGrid grid;
-          private TetrisBag bag = new TetrisBag();
+          private TetrisBag bag;
+          private TetrisBlockHolder holder;
           private ThreadPoolTimer timer;
+          public MoveAction CurrentMoveAction { get; set; }
+
           public Action CurrentAction { get; set; }
 
-          private DispatcherTimer dispatcherTimer = new DispatcherTimer();
+          public bool FastDrop { get; set; } = false;
 
-          public TetrisBlockHandler(TetrisGrid grid)
+          //Counters
+          public uint GravityTicks { get; set; } = 60;
+          public uint FastDropGravityTicks { get; set; } = 2;
+          public uint MoveTicks { get; set; } = 5;
+          private uint ticks = 0;
+          private uint moveTicks = 0;
+          private bool swapped = false;
+
+
+          public TetrisBlockHandler(TetrisGrid grid, TetrisBlockHolder holder, TetrisBag bag)
           {
                this.grid = grid;
+               this.holder = holder;
+               this.bag = bag;
                //timer = new Timer(tick,null, (int)TimeSpan.FromSeconds(1).TotalMilliseconds, (int)TimeSpan.FromSeconds(1).TotalMilliseconds)
-               timer = ThreadPoolTimer.CreatePeriodicTimer(tick, TimeSpan.FromSeconds(1));
+               timer = ThreadPoolTimer.CreatePeriodicTimer(tick, TimeSpan.FromMilliseconds(16));
 
 
 
@@ -286,24 +459,50 @@ namespace TetrisUWP
                if (block != null)
                     block.draw(args);
                grid.draw(args);
+               holder.draw(args);
+               bag.draw(args);
           }
 
           public void start()
           {
-               block = new TetrisBlockO();
+               spawnBlock();
+
           }
           public void tick(ThreadPoolTimer timer)
           {
+               ticks += 1;
+               if (CurrentMoveAction != MoveAction.None && moveTicks % MoveTicks == 0)
+               {
+                    if (CurrentMoveAction == MoveAction.Left)
+                         moveLeft();
+                    else if (CurrentMoveAction == MoveAction.Right)
+                         moveRight();
+               }
+               if (CurrentMoveAction == MoveAction.Left || CurrentMoveAction == MoveAction.Right)
+                    moveTicks += 1;
 
+
+
+
+
+               if (ticks % (FastDrop ? (Math.Min(FastDropGravityTicks, GravityTicks)) : GravityTicks) == 0)
+                    handleGravityTick();
+
+
+
+          }
+          private void handleGravityTick()
+          {
                if (block != null)
                {
+
                     if (grid.isCollision(block, 0, (float)Tetrimino.Size.Height))
                     {
-                         grid.setBlock(block);
+                         setBlock();
 
                          //Check for matching lines
 
-                         block = bag.next();
+                         spawnBlock();
                     }
                     else
                     {
@@ -315,94 +514,188 @@ namespace TetrisUWP
                }
                else
                {
-                    block = bag.next();
+                    spawnBlock();
+
 
                }
           }
 
+          private void spawnBlock(TetrisBlock block = null)
+          {
+
+               TetrisBlock b;
+               if (block == null)
+                    b = bag.next();
+               else
+                    b = block;
+
+               b.X = grid.x() + (((TetrisGrid.HorizontalBlocks / 2) - 2) * ((float)Tetrimino.Size.Width));
+               b.Y = grid.y();
+               this.block = b;
+          }
+          private void setBlock()
+          {
+               swapped = false;
+               grid.setBlock(block);
+          }
           public void startMovingLeft()
           {
-               CurrentAction = Action.MovingLeft;
-               moveLeft(null,null);
+               CurrentMoveAction = MoveAction.Left;
+
+
           }
           public void stopMovingLeft()
           {
-               if (CurrentAction == Action.MovingLeft) {
-                    CurrentAction = Action.None;
-                    dispatcherTimer.Stop();
+               if (CurrentMoveAction == MoveAction.Left)
+               {
+                    CurrentMoveAction = MoveAction.None;
+
+                    moveTicks = 0;
                }
-               
+
+          }
+          public void holdBlock()
+          {
+               if (!swapped)
+               {
+                    TetrisBlock b = holder.Block;
+                    block.Rotation = 0;
+                    block.layoutTetriminos();
+                    if (b == null)
+                    {
+                         holder.Block = block;
+                         spawnBlock();
+
+                    }
+                    else
+                    {
+                         holder.Block = block;
+                         spawnBlock(b);
+                         swapped = true;
+                    }
+
+               }
           }
           public void startMovingRight()
           {
-               CurrentAction = Action.MovingRight;
-               moveRight(null,null);
+               CurrentMoveAction = MoveAction.Right;
+
+
           }
           public void stopMovingRight()
           {
-               if (CurrentAction == Action.MovingRight)
+               if (CurrentMoveAction == MoveAction.Right)
                {
-                    CurrentAction = Action.None;
-                    dispatcherTimer.Stop();
+                    CurrentMoveAction = MoveAction.None;
+                    moveTicks = 0;
 
                }
-                    
+
           }
 
-          public void moveLeft(object sender, object e)
+          public void moveLeft()
           {
-               if (CurrentAction == Action.MovingLeft)
+               if (CurrentMoveAction == MoveAction.Left)
                {
-                    if (!grid.isCollision(block, -(float)Tetrimino.Size.Width, 0))
+
+                    if (!grid.isCollision(block, (float)-Tetrimino.Size.Width, 0))
                     {
                          block.X += -(float)Tetrimino.Size.Width;
                     }
-                    dispatcherTimer.Stop();
-                    dispatcherTimer.Tick += moveLeft;
-                    dispatcherTimer.Interval = TimeSpan.FromMilliseconds(500);
-                    dispatcherTimer.Start();
+
 
                }
 
           }
 
 
-          public void moveRight(object sender, object e)
+          public void moveRight()
           {
-               if (CurrentAction == Action.MovingRight)
+               if (CurrentMoveAction == MoveAction.Right)
                {
                     if (!grid.isCollision(block, (float)Tetrimino.Size.Width, 0))
                     {
                          block.X += (float)Tetrimino.Size.Width;
                     }
-                    dispatcherTimer.Stop();
-                    dispatcherTimer.Tick += moveRight;
-                    dispatcherTimer.Interval = TimeSpan.FromMilliseconds(500);
-                    dispatcherTimer.Start();
+
 
                }
           }
-          public void fastDrop()
+          public void hardDrop()
           {
+
                while (!grid.isCollision(block, 0, (float)Tetrimino.Size.Height))
                {
                     block.Y += (float)Tetrimino.Size.Height;
+
                }
-               grid.setBlock(block);
-               block = bag.next();
+               setBlock();
+               spawnBlock();
+
+          }
+
+
+          public void startFastDrop()
+          {
+               FastDrop = true;
+
+
+          }
+          public void stopFastDrop()
+          {
+               FastDrop = false;
+
 
           }
           public void rotateClockwise()
           {
+               Tuple<int, int> kick = block.canRotate(grid, true);
+               if (kick != null)
+                    block.rotateClockwise(kick);
+
 
           }
           public void rotateCounterClockwise()
           {
+               Tuple<int, int> kick = block.canRotate(grid, false);
+               if (kick != null)
+                    block.rotateCounterClockwise(kick);
+          }
+     }
+
+     class TetrisBlockHolder : Drawable
+     {
+          public TetrisBlock Block { get; set; } = null;
+          public TetrisBlockHolder(float x, float y, Locatable relativeTo)
+          {
+               this.X = x;
+               this.Y = y;
+               this.RelativeTo = relativeTo;
+               Width = ((float)Tetrimino.Size.Width * 5);
+               Height = ((float)Tetrimino.Size.Height * 5);
+          }
+
+          public override void draw(CanvasDrawEventArgs args)
+          {
+               args.DrawingSession.DrawRectangle(x(), y(),  Width,  Height, Colors.Black);
+               if (Block != null)
+                    Block.draw(args, x() + (Width - Block.Width) / 2, y() + (Height - Block.Height) / 2);
+
+
 
           }
      }
 
-     //Blocks
+     class TetrisScoreKeeper
+     {
+          public int Score { get; set; }
+          public int Level { get; set; }
+
+     }
+     /*
+      * Blocks
+      */
+
      class TetrisBlockO : TetrisBlock
      {
 
@@ -410,16 +703,68 @@ namespace TetrisUWP
           {
                return new TetrisBlockO();
           }
-          public TetrisBlockO()
-          {
-               Tetriminos = new Tetrimino[]
-               {
-                    new Tetrimino(0, 0, this),
-                    new Tetrimino(0, (float)Tetrimino.Size.Height, this),
-                    new Tetrimino((float)Tetrimino.Size.Width, 0, this),
-                    new Tetrimino((float)Tetrimino.Size.Width, (float)Tetrimino.Size.Height, this)
+          private static byte[,,] layout = new byte[4, 4, 4] {
+                    {
+                         { 0,0,0,0},
+                         { 0,1,1,0},
+                         { 0,2,1,0},
+                         { 0,0,0,0}
+
+                    },
+                                        {
+                         { 0,0,0,0},
+                         { 0,2,1,0},
+                         { 0,1,1,0},
+                         { 0,0,0,0}
+
+                    },
+                                        {
+                         { 0,0,0,0},
+                         { 0,1,2,0},
+                         { 0,1,1,0},
+                         { 0,0,0,0}
+
+                    },
+                                        {
+                         { 0,0,0,0},
+                         { 0,1,1,0},
+                         { 0,1,2,0},
+                         { 0,0,0,0}
+
+                    }
 
                };
+          private static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
+          {
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+               new Tuple<int, int>[1] {
+                    Tuple.Create(0,0)
+                    },
+          };
+          public TetrisBlockO() : base(layout, kicks)
+          {
+
+
           }
 
 
@@ -430,16 +775,113 @@ namespace TetrisUWP
           {
                return new TetrisBlockT();
           }
-          public TetrisBlockT()
-          {
-               Tetriminos = new Tetrimino[]
-               {
-                    new Tetrimino((float)Tetrimino.Size.Width, 0, this),
-                    new Tetrimino(0, (float)Tetrimino.Size.Height, this),
-                    new Tetrimino((float)Tetrimino.Size.Width, (float)Tetrimino.Size.Height, this),
-                    new Tetrimino((float)Tetrimino.Size.Width*2, (float)Tetrimino.Size.Height, this)
+          private static byte[,,] layout = new byte[4, 4, 4] {
+                    {
+                         { 0,0,0,0},
+                         { 0,1,0,0},
+                         { 1,2,0,0},
+                         { 0,1,0,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 0,0,0,0},
+                         { 1,2,1,0},
+                         { 0,1,0,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 0,1,0,0},
+                         { 0,2,1,0},
+                         { 0,1,0,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 0,1,0,0},
+                         { 1,2,1,0},
+                         { 0,0,0,0}
+
+                    }
+
+
+
 
                };
+          public static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
+          {
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(1,-1),
+                    Tuple.Create(0,2),
+                    Tuple.Create(1,2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(-1,-1),
+                    Tuple.Create(0,2),
+                    Tuple.Create(-1,2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(1,1),
+                    Tuple.Create(0,-2),
+                    Tuple.Create(1,-2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(1,1),
+                    Tuple.Create(0,-2),
+                    Tuple.Create(1,-2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(-1,-1),
+                    Tuple.Create(0,2),
+                    Tuple.Create(-1,2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(1,-1),
+                    Tuple.Create(0,2),
+                    Tuple.Create(1,2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(-1,1),
+                    Tuple.Create(0,-2),
+                    Tuple.Create(-1,-2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(-1,1),
+                    Tuple.Create(0,-2),
+                    Tuple.Create(-1,-2),
+
+               }
+
+
+          };
+
+          public TetrisBlockT() : base(layout, kicks)
+          {
+
           }
 
 
@@ -450,16 +892,112 @@ namespace TetrisUWP
           {
                return new TetrisBlockI();
           }
-          public TetrisBlockI()
-          {
-               Tetriminos = new Tetrimino[]
-               {
-                    new Tetrimino(0, 0, this),
-                    new Tetrimino(0, (float)Tetrimino.Size.Height, this),
-                    new Tetrimino(0, (float)Tetrimino.Size.Height*2, this),
-                    new Tetrimino(0, (float)Tetrimino.Size.Height*3, this)
+          private static byte[,,] layout = new byte[4, 4, 4] {
+                    {
+                         { 0,1,0,0},
+                         { 0,1,0,0},
+                         { 0,2,0,0},
+                         { 0,1,0,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 0,0,0,0},
+                         { 1,1,2,1},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,0,1,0},
+                         { 0,0,2,0},
+                         { 0,0,1,0},
+                         { 0,0,1,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 1,2,1,1},
+                         { 0,0,0,0},
+                         { 0,0,0,0}
+
+                    }
+
+
+
 
                };
+          private static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
+{
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(2,0),
+                    Tuple.Create(-1,-2),
+                    Tuple.Create(2,1),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-2,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(-2,1),
+                    Tuple.Create(1,-2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(2,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(2,-1),
+                    Tuple.Create(-1,2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(2,0),
+                    Tuple.Create(-1,-2),
+                    Tuple.Create(2,-1),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(-2,-1),
+                    Tuple.Create(1,2),
+                    Tuple.Create(-2,-1),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(2,0),
+                    Tuple.Create(-1,0),
+                    Tuple.Create(2,-1),
+                    Tuple.Create(-1,-2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(-2,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(-2,1),
+                    Tuple.Create(1,-2),
+
+               },
+               new Tuple<int, int>[] {
+                    Tuple.Create(0,0),
+                    Tuple.Create(1,0),
+                    Tuple.Create(-2,0),
+                    Tuple.Create(1,2),
+                    Tuple.Create(-2,-1),
+
+               }
+
+
+};
+          public TetrisBlockI() : base(layout, kicks)
+          {
+
           }
 
 
@@ -470,17 +1008,42 @@ namespace TetrisUWP
           {
                return new TetrisBlockZ();
           }
-          public TetrisBlockZ()
-          {
-               Tetriminos = new Tetrimino[]
-               {
-                    new Tetrimino(0, 0, this),
-                    new Tetrimino((float) Tetrimino.Size.Width, 0, this),
-                    new Tetrimino((float) Tetrimino.Size.Width, (float)Tetrimino.Size.Height, this),
-                    new Tetrimino((float) Tetrimino.Size.Width*2, (float)Tetrimino.Size.Height, this)
+          private static byte[,,] layout = new byte[4, 4, 4] {
+                    {
+                         { 0,1,0,0},
+                         { 1,2,0,0},
+                         { 1,0,0,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 1,2,0,0},
+                         { 0,1,1,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,0,1,0},
+                         { 0,2,1,0},
+                         { 0,1,0,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 1,1,0,0},
+                         { 0,2,1,0},
+                         { 0,0,0,0},
+                         { 0,0,0,0}
+
+                    }
+
+
 
 
                };
+          public TetrisBlockZ() : base(layout, TetrisBlockT.kicks)
+          {
           }
 
 
@@ -491,17 +1054,42 @@ namespace TetrisUWP
           {
                return new TetrisBlockS();
           }
-          public TetrisBlockS()
-          {
-               Tetriminos = new Tetrimino[]
-               {
-                    new Tetrimino(0, (float)Tetrimino.Size.Height, this),
-                    new Tetrimino((float) Tetrimino.Size.Width, (float)Tetrimino.Size.Height, this),
-                    new Tetrimino((float) Tetrimino.Size.Width,0, this),
-                    new Tetrimino((float) Tetrimino.Size.Width*2, 0, this)
+          private static byte[,,] layout = new byte[4, 4, 4] {
+                    {
+                         { 1,0,0,0},
+                         { 1,2,0,0},
+                         { 0,1,0,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 0,2,1,0},
+                         { 1,1,0,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,1,0,0},
+                         { 0,2,1,0},
+                         { 0,0,1,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,1,1,0},
+                         { 1,2,0,0},
+                         { 0,0,0,0},
+                         { 0,0,0,0}
+
+                    }
+
+
 
 
                };
+          public TetrisBlockS() : base(layout, TetrisBlockT.kicks)
+          {
           }
 
 
@@ -512,18 +1100,43 @@ namespace TetrisUWP
           {
                return new TetrisBlockL();
           }
-          public TetrisBlockL()
-          {
-               Tetriminos = new Tetrimino[]
-               {
-                    new Tetrimino(0, 0, this),
-                    new Tetrimino(0,(float)Tetrimino.Size.Height,this),
-                    new Tetrimino(0,(float)Tetrimino.Size.Height*2,this),
-                    new Tetrimino((float) Tetrimino.Size.Width,(float)Tetrimino.Size.Height*2,this)
+          private static byte[,,] layout = new byte[4, 4, 4] {
+                    {
+                         { 1,1,0,0},
+                         { 0,2,0,0},
+                         { 0,1,0,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,0,0,0},
+                         { 1,2,1,0},
+                         { 1,0,0,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,1,0,0},
+                         { 0,2,0,0},
+                         { 0,1,1,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 0,0,1,0},
+                         { 1,2,1,0},
+                         { 0,0,0,0},
+                         { 0,0,0,0}
+
+                    },
+
 
 
 
                };
+          public TetrisBlockL() : base(layout, TetrisBlockT.kicks)
+          {
+
           }
 
 
@@ -534,18 +1147,43 @@ namespace TetrisUWP
           {
                return new TetrisBlockJ();
           }
-          public TetrisBlockJ()
-          {
-               Tetriminos = new Tetrimino[]
-               {
-                    new Tetrimino((float) Tetrimino.Size.Width, 0, this),
-                    new Tetrimino((float) Tetrimino.Size.Width,(float)Tetrimino.Size.Height,this),
-                    new Tetrimino((float) Tetrimino.Size.Width,(float)Tetrimino.Size.Height*2,this),
-                    new Tetrimino(0,(float)Tetrimino.Size.Height*2,this)
+          private static byte[,,] layout = new byte[4, 4, 4] {
+                                        {
+                         { 0,1,0,0},
+                         { 0,2,0,0},
+                         { 1,1,0,0},
+                         { 0,0,0,0}
+
+                    },
+                                        {
+                         { 0,0,0,0},
+                         { 1,2,1,0},
+                         { 0,0,1,0},
+                         { 0,0,0,0}
+
+                    },
+                                        {
+                         { 0,1,1,0},
+                         { 0,2,0,0},
+                         { 0,1,0,0},
+                         { 0,0,0,0}
+
+                    },
+                    {
+                         { 1,0,0,0},
+                         { 1,2,1,0},
+                         { 0,0,0,0},
+                         { 0,0,0,0}
+
+                    },
+
 
 
 
                };
+          public TetrisBlockJ() : base(layout, TetrisBlockT.kicks)
+          {
+
           }
 
 

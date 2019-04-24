@@ -1,103 +1,27 @@
-﻿using Microsoft.Graphics.Canvas.UI.Xaml;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
-using Windows.UI;
 
 namespace TetrisUWP
 {
-     public abstract class Drawable : Locatable
+     
+     class Util
      {
-
-          public abstract void draw(CanvasDrawEventArgs args);
-
+          public static int rotation_id(int rotation, bool clockwise)
+          {
+               return (int)((rotation % 4) * 2 + (clockwise ? 1 : 0));
+          }
      }
-     public interface Collidable
+     public class BlockTester : Locatable
      {
-          bool isCollision(float x, float y);
-          
+          public BlockTester(float x,float y,float width,float height)
+          {
+               this.X = x;
+               this.Y = y;
+               this.Width = width;
+               this.Height = height;
+          }
      }
-     public interface BoundingBox : Collidable
-     {
-          float top();
-          float right();
-          float bottom();
-          float left();
-          float Width { get; set; }
-          float Height { get; set; }
-          bool isCollision(BoundingBox box);
-     }
-     public abstract class Locatable : BoundingBox
-     {
-          public Locatable RelativeTo { get; set; }
-          public float X
-          {
-               get; set;
-          }
-          public float Y
-          {
-               get; set;
-          }
-
-          public float Width { get; set; }
-          public float Height { get; set; }
-
-          public float bottom()
-          {
-               return y()+Height;
-          }
-
-          public virtual bool isCollision(BoundingBox box)
-          {
-               return (
-                    box.left() < right() &&
-                    box.right() > left() &&
-                    box.top() < bottom() &&
-                    box.bottom() > top()
-                    );
-          }
-
-          public virtual bool isCollision(float x, float y)
-          {
-               return (x > left() && x < right() && y > top() && y < bottom());
-          }
-
-          public float left()
-          {
-               return x();
-          }
-
-          public float right()
-          {
-               return x()+Width;
-          }
-
-          public float top()
-          {
-               return y();
-          }
-
-          public float x()
-          {
-               if (RelativeTo != null)
-               {
-                    return RelativeTo.x() + X;
-               }
-               else
-               {
-                    return X;
-               }
-          }
-          public float y()
-          {
-               if (RelativeTo != null)
-               {
-                    return RelativeTo.y() + Y;
-               }
-               else
-               {
-                    return Y;
-               }
-          }
-
-     }
-
 }

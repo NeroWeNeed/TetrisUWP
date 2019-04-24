@@ -52,7 +52,10 @@ namespace TetrisUWP
           }
           async Task CreateObjects(CanvasControl sender)
           {
-               handler = new TetrisBlockHandler(new TetrisGrid());
+               TetrisGrid grid = new TetrisGrid(200, 100);
+               TetrisBlockHolder holder = new TetrisBlockHolder(-(((float) Tetrimino.Size.Width * 5)), 0, grid);
+               TetrisBag bag = new TetrisBag(new Random(), grid.Width, 0, grid);
+               handler = new TetrisBlockHandler(grid,holder,bag);
                drawables.Add(handler);
                
               
@@ -85,7 +88,19 @@ namespace TetrisUWP
                          handler.startMovingRight();
                          break;
                     case Windows.System.VirtualKey.Up:
-                         handler.fastDrop();
+                         handler.hardDrop();
+                         break;
+                    case Windows.System.VirtualKey.Down:
+                         handler.startFastDrop();
+                         break;
+                    case Windows.System.VirtualKey.C:
+                         handler.holdBlock();
+                         break;
+                    case Windows.System.VirtualKey.X:
+                         handler.rotateClockwise();
+                         break;
+                    case Windows.System.VirtualKey.Z:
+                         handler.rotateCounterClockwise();
                          break;
                }
 
@@ -99,6 +114,10 @@ namespace TetrisUWP
                     case Windows.System.VirtualKey.Left:
                          handler.stopMovingLeft();
                          
+                         break;
+                    case Windows.System.VirtualKey.Down:
+                         handler.stopFastDrop();
+
                          break;
                     case Windows.System.VirtualKey.Right:
                          handler.stopMovingRight();
