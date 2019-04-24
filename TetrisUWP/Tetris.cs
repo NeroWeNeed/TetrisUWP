@@ -220,7 +220,7 @@ namespace TetrisUWP
           {
 
                args.DrawingSession.DrawImage(Graphic, x(), y());
-               args.DrawingSession.DrawImage(Graphic,x(),y())
+            args.DrawingSession.DrawImage(Graphic, x(), y());
           }
           public void draw(CanvasDrawEventArgs args, float x, float y)
           {

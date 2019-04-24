@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.271
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.202
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TetrisUWP", "TetrisUWP\TetrisUWP.csproj", "{FE632927-7EC5-417F-A864-D1DAAF753FB3}"
 EndProject
@@ -17,9 +17,9 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM.ActiveCfg = Debug|ARM
-		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM.Build.0 = Debug|ARM
-		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM.Deploy.0 = Debug|ARM
+		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM.ActiveCfg = Debug|x86
+		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM.Build.0 = Debug|x86
+		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM.Deploy.0 = Debug|x86
 		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM64.ActiveCfg = Debug|ARM64
 		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM64.Build.0 = Debug|ARM64
 		{FE632927-7EC5-417F-A864-D1DAAF753FB3}.Debug|ARM64.Deploy.0 = Debug|ARM64
