@@ -168,6 +168,7 @@ namespace TetrisUWP
           {
                foreach (var x in Tetriminos)
                {
+                   
                     x.draw(args);
                }
 
@@ -219,6 +220,7 @@ namespace TetrisUWP
           {
 
                args.DrawingSession.DrawImage(Graphic, x(), y());
+               args.DrawingSession.DrawImage(Graphic,x(),y())
           }
           public void draw(CanvasDrawEventArgs args, float x, float y)
           {
@@ -233,7 +235,7 @@ namespace TetrisUWP
      {
           public static int HorizontalBlocks = 10;
           public static int VerticalBlocks = 20;
-          private bool[,] filled = new bool[HorizontalBlocks, VerticalBlocks];
+          public bool[,] Filled { get; private set; } = new bool[HorizontalBlocks, VerticalBlocks];
 
 
           public TetrisGrid() : this(0, 0)
@@ -266,11 +268,11 @@ namespace TetrisUWP
                     args.DrawingSession.DrawLine(x() + (float)(Tetrimino.Size.Height * i), y(), x() + (float)(Tetrimino.Size.Height * i), y() + Height, Colors.Black);
 
                }
-               for (int i = 0; i < filled.GetLength(1); i++)
+               for (int i = 0; i < Filled.GetLength(1); i++)
                {
-                    for (int j = 0; j < filled.GetLength(0); j++)
+                    for (int j = 0; j < Filled.GetLength(0); j++)
                     {
-                         if (filled[j, i])
+                         if (Filled[j, i])
                          {
                               args.DrawingSession.DrawImage(Tetrimino.Graphic, j * (float)Tetrimino.Size.Width + x(), i * (float)Tetrimino.Size.Height + y());
 
@@ -288,7 +290,7 @@ namespace TetrisUWP
                {
                     x = (int)((z.x() - this.x()) / Tetrimino.Size.Width);
                     y = (int)((z.y() - this.y()) / Tetrimino.Size.Height);
-                    filled[x, y] = true;
+                    Filled[x, y] = true;
                }
           }
 
@@ -305,7 +307,7 @@ namespace TetrisUWP
 
                int testX = (int)((box.left() - x()) / Tetrimino.Size.Width);
                int testY = (int)((box.top() - y()) / Tetrimino.Size.Height);
-               return filled[testX, testY];
+               return Filled[testX, testY];
 
 
 
@@ -327,11 +329,11 @@ namespace TetrisUWP
           public override bool isCollision(float x, float y)
           {
                float boxX, boxY, boxW = (float)Tetrimino.Size.Width, boxH = (float)Tetrimino.Size.Height;
-               for (int i = 0; i < filled.GetLength(1); i++)
+               for (int i = 0; i < Filled.GetLength(1); i++)
                {
-                    for (int j = 0; j < filled.GetLength(0); j++)
+                    for (int j = 0; j < Filled.GetLength(0); j++)
                     {
-                         if (!filled[j, i])
+                         if (!Filled[j, i])
                               continue;
                          boxX = j * boxW;
                          boxY = i * boxH - boxH;
@@ -427,6 +429,7 @@ namespace TetrisUWP
           private TetrisBag bag;
           private TetrisBlockHolder holder;
           private ThreadPoolTimer timer;
+          private TetrisScoreKeeper scoreKeeper = new TetrisScoreKeeper();
           public MoveAction CurrentMoveAction { get; set; }
 
           public Action CurrentAction { get; set; }
@@ -500,6 +503,7 @@ namespace TetrisUWP
                     {
                          setBlock();
 
+                         
                          //Check for matching lines
 
                          spawnBlock();
@@ -537,6 +541,7 @@ namespace TetrisUWP
           {
                swapped = false;
                grid.setBlock(block);
+               scoreKeeper.checkGrid(grid);
           }
           public void startMovingLeft()
           {
@@ -595,7 +600,7 @@ namespace TetrisUWP
 
           public void moveLeft()
           {
-               if (CurrentMoveAction == MoveAction.Left)
+               if (CurrentMoveAction == MoveAction.Left && block != null)
                {
 
                     if (!grid.isCollision(block, (float)-Tetrimino.Size.Width, 0))
@@ -611,7 +616,7 @@ namespace TetrisUWP
 
           public void moveRight()
           {
-               if (CurrentMoveAction == MoveAction.Right)
+               if (CurrentMoveAction == MoveAction.Right && block != null)
                {
                     if (!grid.isCollision(block, (float)Tetrimino.Size.Width, 0))
                     {
@@ -677,7 +682,7 @@ namespace TetrisUWP
 
           public override void draw(CanvasDrawEventArgs args)
           {
-               args.DrawingSession.DrawRectangle(x(), y(),  Width,  Height, Colors.Black);
+               args.DrawingSession.DrawRectangle(x(), y(), Width, Height, Colors.Black);
                if (Block != null)
                     Block.draw(args, x() + (Width - Block.Width) / 2, y() + (Height - Block.Height) / 2);
 
@@ -689,21 +694,100 @@ namespace TetrisUWP
      class TetrisScoreKeeper
      {
           public int Score { get; set; }
-          public int Level { get; set; }
+          public int Level { get; set; } = 1;
+          public int Combo { get; set; } = 0;
+          private bool previousCheckTetris = false;
 
-     }
-     /*
-      * Blocks
-      */
-
-     class TetrisBlockO : TetrisBlock
-     {
-
-          public static TetrisBlockO create()
+          public void checkGrid(TetrisGrid grid)
           {
-               return new TetrisBlockO();
+               int lines = 0;
+               bool lineClear;
+               for (int i = grid.Filled.GetLength(1) - 1; i >= 0; i--)
+               {
+                    lineClear = true;
+                    
+                    for (int j = 0; j < grid.Filled.GetLength(0); j++)
+                    {
+                         
+                         if (!grid.Filled[j,i])
+                         {
+                              lineClear = false;
+                              break;
+                         }
+
+                    }
+                    if (lineClear)
+                    {
+                         lines += 1;
+                         for (int k = i; k > 0; k--)
+                         {
+                              for (int l = 0; l < grid.Filled.GetLength(0); l++)
+                              {
+                                   grid.Filled[l, k] = grid.Filled[l, k - 1];
+                              }
+                         }
+                         for (int l = 0; l < grid.Filled.GetLength(0); l++)
+                         {
+                              grid.Filled[l, 0] = false;
+                         }
+                         i += 1;
+                    }
+
+               }
+               if (lines >= 4)
+               {
+                    int d = 0;
+               }
+               switch (lines)
+               {
+                    case 1:
+                         Score += 100 * Level;
+                         Combo += 1;
+                         break;
+                    case 2:
+                         Score += 300 * Level;
+                         Combo += 1;
+                         break;
+                    case 3:
+                         Score += 500 * Level;
+                         Combo += 1;
+                         break;
+                    case 4:
+                         if (previousCheckTetris)
+                         {
+                              Score += 1200 * Level;
+                              Combo += 1;
+                              previousCheckTetris = true;
+                         }
+                         else
+                         {
+                              Score += 800 * Level;
+                              Combo += 1;
+                              previousCheckTetris = true;
+                         }
+
+                         break;
+                    default:
+                         Combo = 0;
+                         break;
+               }
+               Score += Combo * 50 * Level;
+
+
           }
-          private static byte[,,] layout = new byte[4, 4, 4] {
+     }
+          /*
+           * Blocks
+           */
+
+          class TetrisBlockO : TetrisBlock
+          {
+
+               public static TetrisBlockO create()
+               {
+                    return new TetrisBlockO();
+               }
+               private static byte[,,] layout = new byte[4, 4, 4] {
                     {
                          { 0,0,0,0},
                          { 0,1,1,0},
@@ -734,8 +818,8 @@ namespace TetrisUWP
                     }
 
                };
-          private static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
-          {
+               private static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
+               {
                new Tuple<int, int>[1] {
                     Tuple.Create(0,0)
                     },
@@ -760,22 +844,22 @@ namespace TetrisUWP
                new Tuple<int, int>[1] {
                     Tuple.Create(0,0)
                     },
-          };
-          public TetrisBlockO() : base(layout, kicks)
-          {
+               };
+               public TetrisBlockO() : base(layout, kicks)
+               {
+
+
+               }
 
 
           }
-
-
-     }
-     class TetrisBlockT : TetrisBlock
-     {
-          public static TetrisBlockT create()
+          class TetrisBlockT : TetrisBlock
           {
-               return new TetrisBlockT();
-          }
-          private static byte[,,] layout = new byte[4, 4, 4] {
+               public static TetrisBlockT create()
+               {
+                    return new TetrisBlockT();
+               }
+               private static byte[,,] layout = new byte[4, 4, 4] {
                     {
                          { 0,0,0,0},
                          { 0,1,0,0},
@@ -809,8 +893,8 @@ namespace TetrisUWP
 
 
                };
-          public static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
-          {
+               public static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
+               {
                new Tuple<int, int>[] {
                     Tuple.Create(0,0),
                     Tuple.Create(1,0),
@@ -877,22 +961,22 @@ namespace TetrisUWP
                }
 
 
-          };
+               };
 
-          public TetrisBlockT() : base(layout, kicks)
-          {
+               public TetrisBlockT() : base(layout, kicks)
+               {
+
+               }
+
 
           }
-
-
-     }
-     class TetrisBlockI : TetrisBlock
-     {
-          public static TetrisBlockI create()
+          class TetrisBlockI : TetrisBlock
           {
-               return new TetrisBlockI();
-          }
-          private static byte[,,] layout = new byte[4, 4, 4] {
+               public static TetrisBlockI create()
+               {
+                    return new TetrisBlockI();
+               }
+               private static byte[,,] layout = new byte[4, 4, 4] {
                     {
                          { 0,1,0,0},
                          { 0,1,0,0},
@@ -926,8 +1010,8 @@ namespace TetrisUWP
 
 
                };
-          private static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
-{
+               private static Tuple<int, int>[][] kicks = new Tuple<int, int>[8][]
+     {
                new Tuple<int, int>[] {
                     Tuple.Create(0,0),
                     Tuple.Create(-1,0),
@@ -994,21 +1078,21 @@ namespace TetrisUWP
                }
 
 
-};
-          public TetrisBlockI() : base(layout, kicks)
-          {
+     };
+               public TetrisBlockI() : base(layout, kicks)
+               {
+
+               }
+
 
           }
-
-
-     }
-     class TetrisBlockZ : TetrisBlock
-     {
-          public static TetrisBlockZ create()
+          class TetrisBlockZ : TetrisBlock
           {
-               return new TetrisBlockZ();
-          }
-          private static byte[,,] layout = new byte[4, 4, 4] {
+               public static TetrisBlockZ create()
+               {
+                    return new TetrisBlockZ();
+               }
+               private static byte[,,] layout = new byte[4, 4, 4] {
                     {
                          { 0,1,0,0},
                          { 1,2,0,0},
@@ -1042,19 +1126,19 @@ namespace TetrisUWP
 
 
                };
-          public TetrisBlockZ() : base(layout, TetrisBlockT.kicks)
-          {
-          }
+               public TetrisBlockZ() : base(layout, TetrisBlockT.kicks)
+               {
+               }
 
 
-     }
-     class TetrisBlockS : TetrisBlock
-     {
-          public static TetrisBlockS create()
-          {
-               return new TetrisBlockS();
           }
-          private static byte[,,] layout = new byte[4, 4, 4] {
+          class TetrisBlockS : TetrisBlock
+          {
+               public static TetrisBlockS create()
+               {
+                    return new TetrisBlockS();
+               }
+               private static byte[,,] layout = new byte[4, 4, 4] {
                     {
                          { 1,0,0,0},
                          { 1,2,0,0},
@@ -1088,19 +1172,19 @@ namespace TetrisUWP
 
 
                };
-          public TetrisBlockS() : base(layout, TetrisBlockT.kicks)
-          {
-          }
+               public TetrisBlockS() : base(layout, TetrisBlockT.kicks)
+               {
+               }
 
 
-     }
-     class TetrisBlockL : TetrisBlock
-     {
-          public static TetrisBlockL create()
-          {
-               return new TetrisBlockL();
           }
-          private static byte[,,] layout = new byte[4, 4, 4] {
+          class TetrisBlockL : TetrisBlock
+          {
+               public static TetrisBlockL create()
+               {
+                    return new TetrisBlockL();
+               }
+               private static byte[,,] layout = new byte[4, 4, 4] {
                     {
                          { 1,1,0,0},
                          { 0,2,0,0},
@@ -1134,20 +1218,20 @@ namespace TetrisUWP
 
 
                };
-          public TetrisBlockL() : base(layout, TetrisBlockT.kicks)
-          {
+               public TetrisBlockL() : base(layout, TetrisBlockT.kicks)
+               {
+
+               }
+
 
           }
-
-
-     }
-     class TetrisBlockJ : TetrisBlock
-     {
-          public static TetrisBlockJ create()
+          class TetrisBlockJ : TetrisBlock
           {
-               return new TetrisBlockJ();
-          }
-          private static byte[,,] layout = new byte[4, 4, 4] {
+               public static TetrisBlockJ create()
+               {
+                    return new TetrisBlockJ();
+               }
+               private static byte[,,] layout = new byte[4, 4, 4] {
                                         {
                          { 0,1,0,0},
                          { 0,2,0,0},
@@ -1181,12 +1265,12 @@ namespace TetrisUWP
 
 
                };
-          public TetrisBlockJ() : base(layout, TetrisBlockT.kicks)
-          {
+               public TetrisBlockJ() : base(layout, TetrisBlockT.kicks)
+               {
+
+               }
+
 
           }
 
-
      }
-
-}
