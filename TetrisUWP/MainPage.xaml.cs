@@ -55,9 +55,10 @@ namespace TetrisUWP
                TetrisGrid grid = new TetrisGrid(200, 100);
                TetrisBlockHolder holder = new TetrisBlockHolder(-(((float) Tetrimino.Size.Width * 5)), 0, grid);
                TetrisBag bag = new TetrisBag(new Random(), grid.Width, 0, grid);
-               handler = new TetrisBlockHandler(grid,holder,bag);
+               TetrisScoreKeeper keeper = new TetrisScoreKeeper(0,holder.Height,holder);
+               handler = new TetrisBlockHandler(grid,holder,bag,keeper,handleWin,handleLoss);
                drawables.Add(handler);
-               
+               handler.start();
               
           }
           async Task ticks(CanvasControl sender)
@@ -103,6 +104,14 @@ namespace TetrisUWP
                          handler.rotateCounterClockwise();
                          break;
                }
+
+          }
+          private void handleWin()
+          {
+
+          }
+          private void handleLoss()
+          {
 
           }
 
