@@ -10,9 +10,9 @@
 
     <Grid>
         <Image Source="Assets/Images/menu_tetris.png" Margin="35,10,-35,-10" IsHitTestVisible="False"/>
-        <Button x:Name="playButton" Height="98" Margin="630,493,0,0" VerticalAlignment="Top" Width="264" Click="PlayButton_Click" FontFamily="Arial Black" Foreground="Red" FontSize="40" FontWeight="Bold" AllowFocusOnInteraction="False" Content="START GAME" IsHitTestVisible="True"/>
-        <Button x:Name="controlButton" Content="HOW TO PLAY" Margin="614,631,0,0" VerticalAlignment="Top" Height="102" Width="308" FontSize="38" Foreground="Red" FontWeight="Bold" Click="ControlButton_Click"/>
-        <Button x:Name="creditsButton" Content="CREDITS" Margin="616,772,0,0" VerticalAlignment="Top" Height="104" Width="296" Foreground="Red" FontSize="40" FontWeight="Bold" Click="CreditsButton_Click"/>
+        <Button x:Name="playButton" Height="98" Margin="0,415,0,0" VerticalAlignment="Top" Width="264" Click="PlayButton_Click" FontFamily="Arial Black" Foreground="Red" FontSize="40" FontWeight="Bold" AllowFocusOnInteraction="False" Content="START GAME" IsHitTestVisible="True" HorizontalAlignment="Center"/>
+        <Button x:Name="controlButton" Content="HOW TO PLAY" Margin="601,553,0,0" VerticalAlignment="Top" Height="102" Width="308" FontSize="38" Foreground="Red" FontWeight="Bold" Click="ControlButton_Click"/>
+        <Button x:Name="creditsButton" Content="CREDITS" Margin="0,694,0,0" VerticalAlignment="Top" Height="104" Width="296" Foreground="Red" FontSize="40" FontWeight="Bold" Click="CreditsButton_Click" HorizontalAlignment="Center"/>
 
     </Grid>
 </Page>
