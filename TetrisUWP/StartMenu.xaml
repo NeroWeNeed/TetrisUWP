@@ -1,0 +1,18 @@
+﻿<Page
+    x:Class="TetrisUWP.StartMenu"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TetrisUWP"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" FontSize="30" AllowFocusOnInteraction="False">
+
+    <Grid>
+        <Image Source="Assets/Images/menu_tetris.png" Margin="35,10,-35,-10" IsHitTestVisible="False"/>
+        <Button x:Name="playButton" Height="98" Margin="630,493,0,0" VerticalAlignment="Top" Width="264" Click="PlayButton_Click" FontFamily="Arial Black" Foreground="Red" FontSize="40" FontWeight="Bold" AllowFocusOnInteraction="False" Content="START GAME" IsHitTestVisible="True"/>
+        <Button x:Name="controlButton" Content="HOW TO PLAY" Margin="614,631,0,0" VerticalAlignment="Top" Height="102" Width="308" FontSize="38" Foreground="Red" FontWeight="Bold" Click="ControlButton_Click"/>
+        <Button x:Name="creditsButton" Content="CREDITS" Margin="616,772,0,0" VerticalAlignment="Top" Height="104" Width="296" Foreground="Red" FontSize="40" FontWeight="Bold" Click="CreditsButton_Click"/>
+
+    </Grid>
+</Page>

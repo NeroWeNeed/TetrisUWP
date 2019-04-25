@@ -253,9 +253,10 @@ namespace TetrisUWP
           public override void draw(CanvasDrawEventArgs args)
           {
 
+               args.DrawingSession.DrawImage(Graphic, x(), y());
+            args.DrawingSession.DrawImage(Graphic, x(), y());
+
                args.DrawingSession.DrawImage(graphic, x(), y());
-
-
 
           }
           public void draw(CanvasDrawEventArgs args, float x, float y)

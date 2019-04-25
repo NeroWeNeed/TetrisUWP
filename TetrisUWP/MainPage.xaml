@@ -9,9 +9,12 @@
      xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
      
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-     <Grid >
-          <canvas:CanvasControl x:Name="GameCanvas" ClearColor="CornflowerBlue" CreateResources="GameCanvas_CreateResources" Draw="GameCanvas_Draw"  IsTabStop="True" IsHitTestVisible="True" KeyDown="GameCanvas_KeyDown" KeyUp="GameCanvas_KeyUp"/>
-     </Grid>
+    <Grid >
+        <canvas:CanvasControl x:Name="GameCanvas" ClearColor="CornflowerBlue" CreateResources="GameCanvas_CreateResources" Draw="GameCanvas_Draw"  IsTabStop="True" IsHitTestVisible="True" KeyDown="GameCanvas_KeyDown" KeyUp="GameCanvas_KeyUp"/>
+        <Button x:Name="button" Height="99" Margin="950,814,0,0" VerticalAlignment="Top" Width="221" Click="Button_Click">
+            <Image Source="Assets/Images/homebutton.png" />
+        </Button>
+    </Grid>
 
 
 
