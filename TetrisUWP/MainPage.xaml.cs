@@ -32,6 +32,7 @@ namespace TetrisUWP
           private List<Drawable> drawables = new List<Drawable>();
           private DispatcherTimer timer = new DispatcherTimer();
           private TetrisBlockHandler handler;
+          private WebView webView = new WebView();
         public MainPage()
         {
             this.InitializeComponent();
@@ -108,14 +109,13 @@ namespace TetrisUWP
           }
           private void handleWin()
           {
-
-          }
+        }
           private void handleLoss()
           {
+            Frame.Navigate(typeof(LosePage));
+        }
 
-          }
-
-          private void GameCanvas_KeyUp(object sender, KeyRoutedEventArgs e)
+          private async void GameCanvas_KeyUp(object sender, KeyRoutedEventArgs e)
           {
                
                switch (e.Key)
@@ -134,7 +134,7 @@ namespace TetrisUWP
                }
           }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private async void Button_Click(object sender, RoutedEventArgs e)
         {
             this.Frame.Navigate(typeof(StartMenu));
         }

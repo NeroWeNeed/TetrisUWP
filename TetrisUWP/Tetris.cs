@@ -466,7 +466,7 @@ namespace TetrisUWP
           {
                None, Clockwise, CounterClockwise
           }
-          private const uint VICTORY_LEVEL = 5;
+          private const uint VICTORY_LEVEL = 2;
           private TetrisBlock block;
           private TetrisGrid grid;
           private TetrisBag bag;
@@ -512,7 +512,7 @@ namespace TetrisUWP
                this.winCallback = winCallback;
                this.loseCallback = loseCallback;
 
-               winCallback();
+               //winCallback();
 
 
           }
@@ -541,12 +541,12 @@ namespace TetrisUWP
           public void signalWin()
           {
                timer.Cancel();
-               loseCallback();
+               winCallback();
           }
           public void signalLoss()
           {
                timer.Cancel();
-               winCallback();
+               loseCallback();
           }
           public void reset()
           {
@@ -570,10 +570,10 @@ namespace TetrisUWP
           public void handleTick(ThreadPoolTimer timer)
           {
                ticks += 1;
-               if (scoreKeeper.Level >= VICTORY_LEVEL)
-               {
-                    signalWin();
-               }
+               //if (scoreKeeper.Level >= VICTORY_LEVEL)
+               //{
+               //     signalWin();
+               //}
 
                if (CurrentMoveAction != MoveAction.None && moveTicks % MoveTicks == 0)
                {

@@ -7,7 +7,7 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="74747064-f697-4a29-8944-859b19f55e6b"
+    Name="TetrisPacked"
     Publisher="CN=Nero"
     Version="1.0.0.0" />
 
@@ -37,7 +37,8 @@
         Square44x44Logo="Assets\Square44x44Logo.png"
         Description="TetrisUWP"
         BackgroundColor="transparent">
-        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png"/>
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" Square71x71Logo="Assets\SmallTile.png" Square310x310Logo="Assets\LargeTile.png">
+        </uap:DefaultTile >
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
     </Application>
